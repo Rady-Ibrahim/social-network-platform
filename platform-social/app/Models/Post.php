@@ -13,6 +13,7 @@ class Post extends Model
     protected $fillable = [
         'user_id',
         'content',
+        'image_path',
     ];
 
     public function user(): BelongsTo
@@ -28,5 +29,14 @@ class Post extends Model
     public function likes(): HasMany
     {
         return $this->hasMany(PostLike::class, 'post_id');
+    }
+
+    public function imageUrl(): ?string
+    {
+        if (! $this->image_path) {
+            return null;
+        }
+
+        return asset('storage/' . $this->image_path);
     }
 }

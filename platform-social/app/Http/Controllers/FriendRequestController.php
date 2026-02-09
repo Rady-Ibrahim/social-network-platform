@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\FriendRequestSent;
 use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -52,11 +53,13 @@ class FriendRequestController extends Controller
             return back()->withErrors(['receiver_id' => __('A friend request already exists or you are already friends.')]);
         }
 
-        FriendRequest::create([
+        $friendRequest = FriendRequest::create([
             'sender_id' => $senderId,
             'receiver_id' => $receiverId,
             'status' => FriendRequest::STATUS_PENDING,
         ]);
+
+        event(new FriendRequestSent($friendRequest));
 
         return back()->with('status', 'friend-request-sent');
     }

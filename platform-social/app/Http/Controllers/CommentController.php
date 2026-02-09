@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CommentCreated;
 use App\Models\Comment;
 use App\Models\Post;
 use Illuminate\Http\RedirectResponse;
@@ -15,10 +16,12 @@ class CommentController extends Controller
             'body' => ['required', 'string', 'max:2000'],
         ]);
 
-        $post->comments()->create([
+        $comment = $post->comments()->create([
             'user_id' => $request->user()->id,
             'body' => $request->input('body'),
         ]);
+
+        event(new CommentCreated($comment));
 
         return back()->with('status', 'comment-added');
     }

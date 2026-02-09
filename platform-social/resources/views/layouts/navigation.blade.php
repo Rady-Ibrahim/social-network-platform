@@ -22,7 +22,65 @@
             </div>
 
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <div class="hidden sm:flex sm:items-center sm:ms-6 space-x-4">
+                {{-- Notifications --}}
+                <div x-data="{ open: false }" class="relative">
+                    <button
+                        type="button"
+                        @click="open = !open; $store.notifications.markAllAsRead()"
+                        class="relative inline-flex items-center justify-center rounded-full bg-white p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        aria-label="Notifications"
+                    >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span
+                            x-show="$store.notifications.unreadCount() > 0"
+                            x-text="$store.notifications.unreadCount()"
+                            class="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold leading-4 text-white"
+                        ></span>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="open"
+                        @click.outside="open = false"
+                        x-transition
+                        class="absolute right-0 mt-2 w-80 max-w-xs origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                    >
+                        <div class="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">
+                                {{ __('Notifications') }}
+                            </span>
+                            <button
+                                type="button"
+                                class="text-xs text-indigo-600 hover:underline"
+                                @click="$store.notifications.markAllAsRead()"
+                            >
+                                {{ __('Mark all as read') }}
+                            </button>
+                        </div>
+                        <div class="max-h-80 overflow-y-auto">
+                            <template x-if="$store.notifications.items.length === 0">
+                                <div class="px-4 py-3 text-sm text-gray-500">
+                                    {{ __('No notifications yet.') }}
+                                </div>
+                            </template>
+                            <template x-for="notification in $store.notifications.items" :key="notification.id">
+                                <div
+                                    class="px-4 py-3 text-sm border-b border-gray-100 last:border-0"
+                                    :class="notification.read ? 'bg-white' : 'bg-indigo-50'"
+                                >
+                                    <div class="text-gray-800" x-text="notification.message"></div>
+                                    <div class="mt-1 text-xs text-gray-500" x-text="notification.created_at ?? ''"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- User menu --}}
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">

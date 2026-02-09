@@ -15,6 +15,14 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
+        @auth
+            <script>
+                window.App = {
+                    userId: {{ auth()->id() }},
+                    userName: @json(auth()->user()->name),
+                };
+            </script>
+        @endauth
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 

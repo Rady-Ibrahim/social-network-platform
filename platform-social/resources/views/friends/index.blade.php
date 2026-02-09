@@ -21,6 +21,14 @@
                 </p>
             @endif
 
+            @if ($errors->any())
+                <div class="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                    @foreach ($errors->all() as $err)
+                        <p>{{ $err }}</p>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('Pending requests') }}</h3>
                 @if ($pendingRequests->isEmpty())
@@ -31,9 +39,11 @@
                             <li class="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
                                 <div class="flex items-center gap-3">
                                     @if ($req->sender->avatarUrl())
-                                        <img src="{{ $req->sender->avatarUrl() }}" alt="" class="h-10 w-10 rounded-full object-cover" />
+                                        <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                                            <img src="{{ $req->sender->avatarUrl() }}" alt="" class="h-full w-full object-cover" width="40" height="40" />
+                                        </div>
                                     @else
-                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
+                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-500">
                                             {{ strtoupper(substr($req->sender->name, 0, 1)) }}
                                         </div>
                                     @endif
@@ -64,9 +74,11 @@
                         @foreach ($friends as $friend)
                             <li class="flex items-center gap-3 py-2">
                                 @if ($friend->avatarUrl())
-                                    <img src="{{ $friend->avatarUrl() }}" alt="" class="h-10 w-10 rounded-full object-cover" />
+                                    <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                                        <img src="{{ $friend->avatarUrl() }}" alt="" class="h-full w-full object-cover" width="40" height="40" />
+                                    </div>
                                 @else
-                                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-500">
                                         {{ strtoupper(substr($friend->name, 0, 1)) }}
                                     </div>
                                 @endif
