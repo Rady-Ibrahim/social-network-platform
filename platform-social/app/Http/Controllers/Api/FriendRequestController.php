@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreFriendRequestRequest;
 use App\Http\Resources\FriendRequestResource;
 use App\Http\Resources\UserResource;
+use App\Events\FriendRequestSent;
 use App\Models\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -43,13 +44,25 @@ class FriendRequestController extends Controller
         $userOne = min($senderId, $receiverId);
         $userTwo = max($senderId, $receiverId);
 
-        $exists = FriendRequest::where('user_one_id', $userOne)
+        $existing = FriendRequest::where('user_one_id', $userOne)
             ->where('user_two_id', $userTwo)
-            ->whereIn('status', [FriendRequest::STATUS_PENDING, FriendRequest::STATUS_ACCEPTED])
-            ->exists();
+            ->first();
 
-        if ($exists) {
-            return response()->json(['message' => 'A friend request already exists or you are already friends.'], 422);
+        if ($existing) {
+            if (in_array($existing->status, [FriendRequest::STATUS_PENDING, FriendRequest::STATUS_ACCEPTED])) {
+                return response()->json(['message' => 'A friend request already exists or you are already friends.'], 422);
+            }
+
+            $existing->update([
+                'sender_id' => $senderId,
+                'receiver_id' => $receiverId,
+                'status' => FriendRequest::STATUS_PENDING,
+            ]);
+            $friendRequest = $existing->load(['sender', 'receiver']);
+
+            event(new FriendRequestSent($friendRequest));
+
+            return response()->json(new FriendRequestResource($friendRequest), 201);
         }
 
         $friendRequest = FriendRequest::create([
@@ -58,6 +71,8 @@ class FriendRequestController extends Controller
             'status' => FriendRequest::STATUS_PENDING,
         ]);
         $friendRequest->load(['sender', 'receiver']);
+
+        event(new FriendRequestSent($friendRequest));
 
         return response()->json(new FriendRequestResource($friendRequest), 201);
     }

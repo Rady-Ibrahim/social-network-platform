@@ -11,13 +11,142 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
                     <x-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
                         {{ __('Feed') }}
                     </x-nav-link>
                     <x-nav-link :href="route('friends.index')" :active="request()->routeIs('friends.index')">
                         {{ __('Friends') }}
                     </x-nav-link>
+
+                    <!-- User search -->
+                    <div
+                        x-data="{
+                            q: '',
+                            loading: false,
+                            results: [],
+                            error: null,
+                            open: false,
+                            controller: null,
+                            async search() {
+                                const query = this.q.trim();
+                                if (!query) {
+                                    this.results = [];
+                                    this.error = null;
+                                    this.open = false;
+                                    return;
+                                }
+
+                                // إلغاء أي طلب قديم
+                                if (this.controller) {
+                                    this.controller.abort();
+                                }
+                                this.controller = new AbortController();
+
+                                this.loading = true;
+                                this.error = null;
+                                try {
+                                    const res = await fetch(`/api/users?q=${encodeURIComponent(query)}`, {
+                                        headers: {
+                                            'Accept': 'application/json',
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                                        },
+                                        credentials: 'same-origin',
+                                        signal: this.controller.signal,
+                                    });
+
+                                    if (!res.ok) {
+                                        this.results = [];
+                                        this.error = `Error ${res.status}`;
+                                        this.open = true;
+                                        return;
+                                    }
+
+                                    const data = await res.json();
+                                    this.results = Array.isArray(data) ? data : (data.data ?? []);
+                                    this.open = this.results.length > 0;
+                                } catch (e) {
+                                    if (e.name !== 'AbortError') {
+                                        console.error(e);
+                                    }
+                                } finally {
+                                    this.loading = false;
+                                }
+                            }
+                        }"
+                        class="relative ms-6"
+                    >
+                        <div class="flex items-center">
+                            <input
+                                type="search"
+                                x-model.debounce.400ms="q"
+                                @input.debounce.400ms="search"
+                                @focus="open = results.length > 0"
+                                @keydown.escape.window="open = false"
+                                placeholder="{{ __('Search users...') }}"
+                                class="block w-52 lg:w-64 rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                            <svg
+                                class="h-4 w-4 text-gray-400 -ms-6 pointer-events-none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+                            </svg>
+                        </div>
+
+                        <!-- Results dropdown -->
+                        <div
+                            x-cloak
+                            x-show="open"
+                            @click.outside="open = false"
+                            x-transition
+                            class="absolute z-40 mt-2 w-72 lg:w-80 rounded-md bg-white shadow-lg border border-gray-200"
+                        >
+                            <template x-if="loading">
+                                <div class="px-3 py-2 text-xs text-gray-500">
+                                    {{ __('Searching...') }}
+                                </div>
+                            </template>
+                            <template x-if="!loading && error">
+                                <div class="px-3 py-2 text-xs text-red-600">
+                                    <span class="font-semibold">{{ __('Search error:') }}</span>
+                                    <span x-text="error"></span>
+                                </div>
+                            </template>
+                            <template x-if="!loading && !error && results.length === 0">
+                                <div class="px-3 py-2 text-xs text-gray-500">
+                                    {{ __('No users found.') }}
+                                </div>
+                            </template>
+                            <template x-for="user in results" :key="user.id">
+                                <a
+                                    :href="`/users/${user.id}`"
+                                    class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    @click="open = false"
+                                >
+                                    <div
+                                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 overflow-hidden"
+                                    >
+                                        <template x-if="user.avatar_url">
+                                            <img :src="user.avatar_url" alt="" class="h-full w-full object-cover" />
+                                        </template>
+                                        <template x-if="!user.avatar_url">
+                                            <span x-text="(user.name || '?').charAt(0).toUpperCase()"></span>
+                                        </template>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-medium text-gray-900" x-text="user.name"></div>
+                                        <div class="text-xs text-gray-500" x-text="user.email ?? ''"></div>
+                                    </div>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
 

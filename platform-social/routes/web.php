@@ -6,17 +6,19 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\PostLikeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Events\TestBroadcast;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
+Route::get('/', [PostController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/dashboard', [PostController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
@@ -40,6 +42,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/friend-requests/{friend_request}/accept', [FriendRequestController::class, 'accept'])->name('friend-requests.accept');
     Route::post('/friend-requests/{friend_request}/reject', [FriendRequestController::class, 'reject'])->name('friend-requests.reject');
     Route::delete('/friend-requests/{friend_request}', [FriendRequestController::class, 'destroy'])->name('friend-requests.destroy');
+
+    // Simple debug route to test broadcasting to the current user
+    Route::get('/test-broadcast', function (Request $request) {
+        event(new TestBroadcast($request->user()));
+
+        return 'Broadcasted test notification';
+    })->name('test-broadcast');
 });
 
 require __DIR__.'/auth.php';

@@ -14,11 +14,13 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+// Public user search endpoint for UI
+Route::get('/users', [UserController::class, 'index']);
+
 Route::middleware('auth:sanctum')->name('api.')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
     Route::get('/users/{user}', [UserController::class, 'show']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
