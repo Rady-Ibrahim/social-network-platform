@@ -49,6 +49,49 @@
                         <img src="{{ $post->imageUrl() }}" alt="" class="max-h-96 w-full rounded-lg object-cover">
                     </div>
                 @endif
+
+                {{-- الإعجابات --}}
+                <div class="mt-4 border-t border-gray-100 pt-3">
+                    <h3 class="font-medium text-gray-900 text-sm mb-2">
+                        {{ __('Likes') }} ({{ $post->likes_count }})
+                    </h3>
+
+                    @if ($post->likes->isEmpty())
+                        <p class="text-sm text-gray-500">
+                            {{ __('No one has liked this post yet.') }}
+                        </p>
+                    @else
+                        @php
+                            $likeUsers = $post->likes->pluck('user')->filter()->unique('id');
+                            $visibleUsers = $likeUsers->take(10);
+                            $remainingCount = $likeUsers->count() - $visibleUsers->count();
+                        @endphp
+
+                        <div class="flex flex-wrap gap-2 text-sm text-gray-700">
+                            @foreach ($visibleUsers as $user)
+                                <a href="{{ route('users.show', $user) }}"
+                                   class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-gray-100 hover:bg-gray-200">
+                                    @if ($user->avatarUrl())
+                                        <span class="inline-block h-6 w-6 rounded-full overflow-hidden">
+                                            <img src="{{ $user->avatarUrl() }}" alt="" class="h-full w-full object-cover">
+                                        </span>
+                                    @else
+                                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600">
+                                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                                        </span>
+                                    @endif
+                                    <span class="font-medium text-gray-800">{{ $user->name }}</span>
+                                </a>
+                            @endforeach
+
+                            @if ($remainingCount > 0)
+                                <span class="text-sm text-gray-500">
+                                    {{ __('and :count more', ['count' => $remainingCount]) }}
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+                </div>
             </article>
 
             {{-- التعليقات --}}
