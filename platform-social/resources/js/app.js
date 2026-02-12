@@ -86,3 +86,90 @@ window.addEventListener('load', () => {
             });
         });
 });
+
+// Like/Unlike without full page reload
+window.addEventListener('DOMContentLoaded', () => {
+    const wrappers = document.querySelectorAll('[data-post-actions]');
+    if (!wrappers.length) return;
+
+    wrappers.forEach((root) => {
+        const likeForm = root.querySelector('[data-like-form]');
+        const unlikeForm = root.querySelector('[data-unlike-form]');
+        const likeBtn = root.querySelector('.js-like-btn');
+        const unlikeBtn = root.querySelector('.js-unlike-btn');
+        const countEl = root.querySelector('.js-likes-count');
+
+        if (!likeForm || !unlikeForm || !likeBtn || !unlikeBtn || !countEl) return;
+
+        let liked = root.dataset.liked === '1';
+        let count = parseInt(root.dataset.likesCount || '0', 10) || 0;
+
+        const applyState = () => {
+            // Update count text
+            countEl.textContent = count;
+
+            if (liked) {
+                // Like button disabled
+                likeBtn.disabled = true;
+                likeBtn.classList.add('border-slate-200', 'bg-slate-50', 'text-slate-400', 'cursor-not-allowed');
+                likeBtn.classList.remove('bg-white', 'text-slate-700', 'hover:bg-slate-50', 'hover:border-slate-300');
+
+                // Unlike button enabled
+                unlikeBtn.disabled = false;
+                unlikeBtn.classList.remove('border-slate-200', 'bg-slate-50', 'text-slate-400', 'cursor-not-allowed');
+                unlikeBtn.classList.add('border-indigo-200', 'bg-indigo-50', 'text-indigo-700');
+            } else {
+                // Like button enabled
+                likeBtn.disabled = false;
+                likeBtn.classList.remove('border-slate-200', 'bg-slate-50', 'text-slate-400', 'cursor-not-allowed');
+                likeBtn.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+
+                // Unlike button disabled
+                unlikeBtn.disabled = true;
+                unlikeBtn.classList.remove('border-indigo-200', 'bg-indigo-50', 'text-indigo-700');
+                unlikeBtn.classList.add('border-slate-200', 'bg-slate-50', 'text-slate-400', 'cursor-not-allowed');
+            }
+        };
+
+        applyState();
+
+        likeForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (liked) return;
+
+            liked = true;
+            count = count + 1;
+            applyState();
+
+            try {
+                await window.axios.post(likeForm.action, new FormData(likeForm));
+            } catch (e) {
+                console.error('Like failed', e);
+                liked = false;
+                count = Math.max(0, count - 1);
+                applyState();
+            }
+        });
+
+        unlikeForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!liked) return;
+
+            liked = false;
+            count = Math.max(0, count - 1);
+            applyState();
+
+            const formData = new FormData(unlikeForm);
+            formData.append('_method', 'DELETE');
+
+            try {
+                await window.axios.post(unlikeForm.action, formData);
+            } catch (e) {
+                console.error('Unlike failed', e);
+                liked = true;
+                count = count + 1;
+                applyState();
+            }
+        });
+    });
+});
