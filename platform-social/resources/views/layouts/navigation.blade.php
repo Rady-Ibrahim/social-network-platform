@@ -197,13 +197,19 @@
                                 </div>
                             </template>
                             <template x-for="notification in $store.notifications.items" :key="notification.id">
-                                <div
-                                    class="px-4 py-3 text-sm border-b border-gray-100 last:border-0"
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-4 py-3 text-sm border-b border-gray-100 last:border-0 focus:outline-none focus:bg-indigo-100"
                                     :class="notification.read ? 'bg-white' : 'bg-indigo-50'"
+                                    @click="
+                                        if (notification.type === 'friend_request') {
+                                            window.location = '{{ route('friends.index') }}';
+                                        }
+                                    "
                                 >
                                     <div class="text-gray-800" x-text="notification.message"></div>
                                     <div class="mt-1 text-xs text-gray-500" x-text="notification.created_at ?? ''"></div>
-                                </div>
+                                </button>
                             </template>
                         </div>
                     </div>

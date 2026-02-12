@@ -43,10 +43,12 @@
     </div>
 
     @if ($post->image_path)
-        <div class="mt-4 rounded-2xl overflow-hidden bg-slate-100">
-            <img src="{{ $post->imageUrl() }}" alt="" class="w-full max-h-[420px] object-cover">
-        </div>
-    @endif
+    <div class="mt-4 rounded-2xl overflow-hidden bg-slate-100">
+        <a href="{{ $post->imageUrl() }}" target="_blank" rel="noopener" class="block">
+            <img src="{{ $post->imageUrl() }}" alt="" class="w-full max-h-[420px] object-cover cursor-pointer">
+        </a>
+    </div>
+@endif
 
     <x-post-actions :post="$post" class="mt-4" />
 

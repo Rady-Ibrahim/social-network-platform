@@ -21,8 +21,15 @@ class CommentController extends Controller
 
     public function store(StoreCommentRequest $request, Post $post): JsonResponse
     {
+        $parentId = $request->input('parent_id');
+
+        if ($parentId) {
+            Comment::where('post_id', $post->id)->where('id', $parentId)->firstOrFail();
+        }
+
         $comment = $post->comments()->create([
             'user_id' => $request->user()->id,
+            'parent_id' => $parentId,
             'body' => $request->input('body'),
         ]);
         $comment->load('user');

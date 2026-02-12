@@ -41,7 +41,37 @@ class PostController extends Controller
         if ($request->user()) {
             $post->setAttribute('is_liked_by_me', $post->likes()->where('user_id', $request->user()->id)->exists());
         }
-        $comments = $post->comments()->with('user')->latest()->paginate(15);
+
+        $comments = $post->comments()
+            ->whereNull('parent_id')
+            ->with([
+                'user',
+                'replies.user',
+            ])
+            ->withCount(['likes', 'replies'])
+            ->latest()
+            ->paginate(15);
+
+        if ($request->user()) {
+            $userId = $request->user()->id;
+            $comments->getCollection()->each(function ($comment) use ($userId) {
+                $comment->setAttribute(
+                    'is_liked_by_me',
+                    $comment->likes()->where('user_id', $userId)->exists()
+                );
+
+                $comment->replies->each(function ($reply) use ($userId) {
+                    $reply->setAttribute(
+                        'likes_count',
+                        $reply->likes()->count()
+                    );
+                    $reply->setAttribute(
+                        'is_liked_by_me',
+                        $reply->likes()->where('user_id', $userId)->exists()
+                    );
+                });
+            });
+        }
 
         return view('posts.show', [
             'post' => $post,

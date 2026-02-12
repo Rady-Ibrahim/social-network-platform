@@ -101,7 +101,7 @@
                 </h3>
 
                 @forelse ($comments as $comment)
-                    <div class="py-3 border-b border-gray-100 last:border-0">
+                    <div class="py-3 border-b border-gray-100 last:border-0" x-data="{ showReply: false }">
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex gap-2 min-w-0">
                                 <a href="{{ route('users.show', $comment->user) }}" class="font-medium text-gray-900 hover:underline shrink-0">
@@ -110,6 +110,101 @@
                                 <div class="min-w-0">
                                     <p class="text-xs text-gray-500">{{ $comment->created_at->diffForHumans() }}</p>
                                     <p class="text-gray-700 mt-0.5">{{ $comment->body }}</p>
+
+                                    {{-- أزرار لايك ورد على التعليق --}}
+                                    <div class="mt-1 flex items-center gap-3 text-xs text-gray-500"
+                                         data-comment-actions
+                                         data-comment-id="{{ $comment->id }}"
+                                         data-liked="{{ ($comment->is_liked_by_me ?? false) ? '1' : '0' }}"
+                                         data-likes-count="{{ $comment->likes_count ?? $comment->likes()->count() }}"
+                                         data-like-text="{{ __('Like') }}"
+                                         data-liked-text="{{ __('Liked') }}"
+                                         data-unlike-text="{{ __('Unlike') }}">
+                                        <form action="{{ route('comments.like', $comment) }}" method="post" class="inline" data-comment-like-form>
+                                            @csrf
+                                            <button type="submit"
+                                                    class="js-comment-like-btn inline-flex items-center gap-1 {{ $comment->is_liked_by_me ?? false ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-600' }}">
+                                                <span class="js-comment-like-text">{{ $comment->is_liked_by_me ?? false ? __('Liked') : __('Like') }}</span>
+                                                <span class="text-[11px]">
+                                                    (<span class="js-comment-likes-count">{{ $comment->likes_count ?? $comment->likes()->count() }}</span>)
+                                                </span>
+                                            </button>
+                                        </form>
+
+                                        <form action="{{ route('comments.unlike', $comment) }}" method="post" class="inline" data-comment-unlike-form>
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="js-comment-unlike-btn text-gray-500 hover:text-red-600 {{ ($comment->is_liked_by_me ?? false) ? '' : 'hidden' }}">
+                                                {{ __('Unlike') }}
+                                            </button>
+                                        </form>
+
+                                        <button type="button"
+                                                class="text-gray-500 hover:text-indigo-600"
+                                                @click="showReply = !showReply">
+                                            {{ __('Reply') }}
+                                        </button>
+                                    </div>
+
+                                    {{-- ردود على التعليق --}}
+                                    @if ($comment->replies->isNotEmpty())
+                                        <div class="mt-2 space-y-2">
+                                            @foreach ($comment->replies as $reply)
+                                                <div class="flex items-start gap-2">
+                                                    <span class="text-xs text-gray-400">↳</span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <a href="{{ route('users.show', $reply->user) }}" class="font-medium text-gray-900 hover:underline text-sm">
+                                                            {{ $reply->user->name }}
+                                                        </a>
+                                                        <p class="text-[11px] text-gray-500">{{ $reply->created_at->diffForHumans() }}</p>
+                                                        <p class="text-gray-700 text-sm mt-0.5">{{ $reply->body }}</p>
+
+                                                        <div class="mt-1 flex items-center gap-3 text-[11px] text-gray-500"
+                                                             data-comment-actions
+                                                             data-comment-id="{{ $reply->id }}"
+                                                             data-liked="{{ ($reply->is_liked_by_me ?? false) ? '1' : '0' }}"
+                                                             data-likes-count="{{ $reply->likes_count ?? $reply->likes()->count() }}"
+                                                             data-like-text="{{ __('Like') }}"
+                                                             data-liked-text="{{ __('Liked') }}"
+                                                             data-unlike-text="{{ __('Unlike') }}">
+                                                            <form action="{{ route('comments.like', $reply) }}" method="post" class="inline" data-comment-like-form>
+                                                                @csrf
+                                                                <button type="submit"
+                                                                        class="js-comment-like-btn inline-flex items-center gap-1 {{ $reply->is_liked_by_me ?? false ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-600' }}">
+                                                                    <span class="js-comment-like-text">{{ $reply->is_liked_by_me ?? false ? __('Liked') : __('Like') }}</span>
+                                                                    <span>
+                                                                        (<span class="js-comment-likes-count">{{ $reply->likes_count ?? $reply->likes()->count() }}</span>)
+                                                                    </span>
+                                                                </button>
+                                                            </form>
+
+                                                            <form action="{{ route('comments.unlike', $reply) }}" method="post" class="inline" data-comment-unlike-form>
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit"
+                                                                        class="js-comment-unlike-btn text-gray-500 hover:text-red-600 {{ ($reply->is_liked_by_me ?? false) ? '' : 'hidden' }}">
+                                                                    {{ __('Unlike') }}
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    {{-- فورم الرد على التعليق --}}
+                                    <div class="mt-2" x-show="showReply" x-cloak>
+                                        <form action="{{ route('comments.store', $post) }}" method="post" class="space-y-2">
+                                            @csrf
+                                            <input type="hidden" name="parent_id" value="{{ $comment->id }}">
+                                            <textarea name="body" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="{{ __('Write a reply...') }}" required></textarea>
+                                            <x-primary-button type="submit" class="!py-1 !text-xs">
+                                                {{ __('Reply') }}
+                                            </x-primary-button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                             @can('delete', $comment)

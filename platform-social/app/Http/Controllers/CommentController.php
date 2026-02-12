@@ -14,10 +14,19 @@ class CommentController extends Controller
     {
         $request->validate([
             'body' => ['required', 'string', 'max:2000'],
+            'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
+
+        $parentId = $request->input('parent_id');
+
+        if ($parentId) {
+            // تأكد أن التعليق الأب يخص نفس البوست
+            $parent = Comment::where('post_id', $post->id)->where('id', $parentId)->firstOrFail();
+        }
 
         $comment = $post->comments()->create([
             'user_id' => $request->user()->id,
+            'parent_id' => $parentId,
             'body' => $request->input('body'),
         ]);
 
