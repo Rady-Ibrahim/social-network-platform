@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\PostLiked;
 use App\Models\Post;
+use App\Models\UserNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,20 @@ class PostLikeController extends Controller
         ]);
 
         if ($like->wasRecentlyCreated) {
+            // Store notification for post owner (if not the same as liker)
+            $post->loadMissing('user');
+            $postOwner = $post->user;
+            if ($postOwner && $postOwner->id !== $request->user()->id) {
+                $postOwner->notifications()->create([
+                    'type' => 'like',
+                    'message' => $request->user()->name . ' liked your post.',
+                    'data' => [
+                        'post_id' => $post->id,
+                        'liker_id' => $request->user()->id,
+                    ],
+                ]);
+            }
+
             event(new PostLiked(
                 post: $post,
                 likerId: $request->user()->id,

@@ -27,36 +27,39 @@
                         @endif
                         @auth
                             @if (auth()->id() === $user->id)
-                                <a href="{{ route('profile.edit') }}" class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
-                                    {{ __('Edit profile') }}
-                                </a>
+                                <a href="{{ route('profile.edit') }}" class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">{{ __('Edit profile') }}</a>
                             @else
-                                @if ($areFriends)
-                                    <span class="mt-4 inline-flex items-center px-4 py-2 bg-gray-200 rounded-md text-xs font-medium text-gray-700">{{ __('Friends') }}</span>
-                                @elseif ($friendRequestFromThem)
-                                    <div class="mt-4 flex gap-2">
-                                        <form action="{{ route('friend-requests.accept', $friendRequestFromThem) }}" method="post" class="inline">
-                                            @csrf
-                                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">{{ __('Accept request') }}</button>
-                                        </form>
-                                        <form action="{{ route('friend-requests.reject', $friendRequestFromThem) }}" method="post" class="inline">
-                                            @csrf
-                                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50">{{ __('Reject') }}</button>
-                                        </form>
-                                    </div>
-                                @elseif ($friendRequestFromMe)
-                                    <form action="{{ route('friend-requests.destroy', $friendRequestFromMe) }}" method="post" class="mt-4 inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-300">{{ __('Cancel request') }}</button>
-                                    </form>
-                                @else
-                                    <form action="{{ route('friend-requests.store') }}" method="post" class="mt-4 inline">
-                                        @csrf
-                                        <input type="hidden" name="receiver_id" value="{{ $user->id }}" />
-                                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">{{ __('Add friend') }}</button>
-                                    </form>
-                                @endif
+                                @php
+                                    $frState = $areFriends ? 'friends' : ($friendRequestFromThem ? 'pending_from_them' : ($friendRequestFromMe ? 'pending_from_me' : 'add_friend'));
+                                @endphp
+                                <div
+                                    class="mt-4"
+                                    x-data="friendRequestProfile({
+                                        state: '{{ $frState }}',
+                                        receiverId: {{ $user->id }},
+                                        storeUrl: '{{ route('friend-requests.store') }}',
+                                        acceptUrl: {{ $friendRequestFromThem ? "'" . route('friend-requests.accept', $friendRequestFromThem) . "'" : 'null' }},
+                                        rejectUrl: {{ $friendRequestFromThem ? "'" . route('friend-requests.reject', $friendRequestFromThem) . "'" : 'null' }},
+                                        destroyUrl: {{ $friendRequestFromMe ? "'" . route('friend-requests.destroy', $friendRequestFromMe) . "'" : 'null' }},
+                                        csrf: '{{ csrf_token() }}'
+                                    })"
+                                >
+                                    <template x-if="state === 'friends'">
+                                        <span class="inline-flex items-center px-4 py-2 bg-gray-200 rounded-md text-xs font-medium text-gray-700">{{ __('Friends') }}</span>
+                                    </template>
+                                    <template x-if="state === 'pending_from_them'">
+                                        <div class="flex gap-2">
+                                            <button type="button" @click="acceptRequest()" :disabled="loading" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-50">{{ __('Accept request') }}</button>
+                                            <button type="button" @click="rejectRequest()" :disabled="loading" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50 disabled:opacity-50">{{ __('Reject') }}</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="state === 'pending_from_me'">
+                                        <button type="button" @click="cancelRequest()" :disabled="loading" class="inline-flex items-center px-4 py-2 bg-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50">{{ __('Cancel request') }}</button>
+                                    </template>
+                                    <template x-if="state === 'add_friend'">
+                                        <button type="button" @click="sendRequest()" :disabled="loading" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-50" x-text="loading ? '…' : '{{ __('Add friend') }}'"></button>
+                                    </template>
+                                </div>
                             @endif
                         @endauth
                     </div>

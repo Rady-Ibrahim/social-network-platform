@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use App\Events\FriendRequestSent;
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -60,6 +61,19 @@ class FriendRequestController extends Controller
             ]);
             $friendRequest = $existing->load(['sender', 'receiver']);
 
+            // Store notification for receiver
+            if ($friendRequest->receiver && $friendRequest->sender) {
+                $friendRequest->receiver->notifications()->create([
+                    'type' => 'friend_request',
+                    'message' => $friendRequest->sender->name . ' sent you a friend request.',
+                    'data' => [
+                        'friend_request_id' => $friendRequest->id,
+                        'sender_id' => $friendRequest->sender_id,
+                        'receiver_id' => $friendRequest->receiver_id,
+                    ],
+                ]);
+            }
+
             event(new FriendRequestSent($friendRequest));
 
             return response()->json(new FriendRequestResource($friendRequest), 201);
@@ -71,6 +85,19 @@ class FriendRequestController extends Controller
             'status' => FriendRequest::STATUS_PENDING,
         ]);
         $friendRequest->load(['sender', 'receiver']);
+
+        // Store notification for receiver
+        if ($friendRequest->receiver && $friendRequest->sender) {
+            $friendRequest->receiver->notifications()->create([
+                'type' => 'friend_request',
+                'message' => $friendRequest->sender->name . ' sent you a friend request.',
+                'data' => [
+                    'friend_request_id' => $friendRequest->id,
+                    'sender_id' => $friendRequest->sender_id,
+                    'receiver_id' => $friendRequest->receiver_id,
+                ],
+            ]);
+        }
 
         event(new FriendRequestSent($friendRequest));
 

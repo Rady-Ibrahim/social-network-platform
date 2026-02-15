@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\CommentCreated;
 use App\Models\Comment;
 use App\Models\Post;
+use App\Models\UserNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -29,6 +30,20 @@ class CommentController extends Controller
             'parent_id' => $parentId,
             'body' => $request->input('body'),
         ]);
+
+        // Store notification for post owner (if not the same as commenter)
+        $post->loadMissing('user');
+        $postOwner = $post->user;
+        if ($postOwner && $postOwner->id !== $request->user()->id) {
+            $postOwner->notifications()->create([
+                'type' => 'comment',
+                'message' => $request->user()->name . ' commented on your post.',
+                'data' => [
+                    'post_id' => $post->id,
+                    'comment_id' => $comment->id,
+                ],
+            ]);
+        }
 
         event(new CommentCreated($comment));
 

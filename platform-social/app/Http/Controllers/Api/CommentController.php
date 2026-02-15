@@ -7,6 +7,7 @@ use App\Http\Requests\Api\StoreCommentRequest;
 use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use App\Models\Post;
+use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,20 @@ class CommentController extends Controller
             'parent_id' => $parentId,
             'body' => $request->input('body'),
         ]);
-        $comment->load('user');
+        $comment->load('user', 'post.user');
+
+        // Store notification for post owner (if not the same as commenter)
+        $postOwner = $comment->post?->user;
+        if ($postOwner && $postOwner->id !== $request->user()->id) {
+            $postOwner->notifications()->create([
+                'type' => 'comment',
+                'message' => $request->user()->name . ' commented on your post.',
+                'data' => [
+                    'post_id' => $post->id,
+                    'comment_id' => $comment->id,
+                ],
+            ]);
+        }
 
         return response()->json(new CommentResource($comment), 201);
     }

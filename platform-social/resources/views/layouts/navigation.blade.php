@@ -199,11 +199,15 @@
                             <template x-for="notification in $store.notifications.items" :key="notification.id">
                                 <button
                                     type="button"
-                                    class="w-full text-left px-4 py-3 text-sm border-b border-gray-100 last:border-0 focus:outline-none focus:bg-indigo-100"
+                                    class="w-full text-left px-4 py-3 text-sm border-b border-gray-100 last:border-0 focus:outline-none focus:bg-indigo-100 hover:bg-indigo-100/80"
                                     :class="notification.read ? 'bg-white' : 'bg-indigo-50'"
                                     @click="
                                         if (notification.type === 'friend_request') {
                                             window.location = '{{ route('friends.index') }}';
+                                        } else if (notification.type === 'comment' && notification.data?.post_id) {
+                                            window.location = '{{ url('/posts') }}/' + notification.data.post_id;
+                                        } else if (notification.type === 'like' && notification.data?.post_id) {
+                                            window.location = '{{ url('/posts') }}/' + notification.data.post_id;
                                         }
                                     "
                                 >

@@ -34,9 +34,16 @@
                 @if ($pendingRequests->isEmpty())
                     <p class="text-sm text-gray-500">{{ __('No pending friend requests.') }}</p>
                 @else
-                    <ul class="space-y-3">
+                    <ul class="space-y-3" id="pending-friend-requests-list">
                         @foreach ($pendingRequests as $req)
-                            <li class="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+                            <li
+                                class="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0"
+                                x-data="friendRequestAcceptReject({
+                                    acceptUrl: '{{ route('friend-requests.accept', $req) }}',
+                                    rejectUrl: '{{ route('friend-requests.reject', $req) }}',
+                                    csrf: '{{ csrf_token() }}'
+                                })"
+                            >
                                 <div class="flex items-center gap-3">
                                     @if ($req->sender->avatarUrl())
                                         <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full">
@@ -50,14 +57,8 @@
                                     <a href="{{ route('users.show', $req->sender) }}" class="font-medium text-gray-900 hover:underline">{{ $req->sender->name }}</a>
                                 </div>
                                 <div class="flex gap-2">
-                                    <form action="{{ route('friend-requests.accept', $req) }}" method="post" class="inline">
-                                        @csrf
-                                        <x-primary-button type="submit" class="!py-1 !text-sm">{{ __('Accept') }}</x-primary-button>
-                                    </form>
-                                    <form action="{{ route('friend-requests.reject', $req) }}" method="post" class="inline">
-                                        @csrf
-                                        <x-secondary-button type="submit" class="!py-1 !text-sm">{{ __('Reject') }}</x-secondary-button>
-                                    </form>
+                                    <button type="button" @click="accept()" :disabled="loading" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-3 py-1 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50">{{ __('Accept') }}</button>
+                                    <button type="button" @click="reject()" :disabled="loading" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50">{{ __('Reject') }}</button>
                                 </div>
                             </li>
                         @endforeach

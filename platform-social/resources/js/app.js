@@ -8,6 +8,37 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('notifications', {
         items: [],
 
+        async loadInitial() {
+            try {
+                const res = await fetch('/notifications', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!res.ok) {
+                    console.error('Failed to load notifications', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    this.items = data.map((n) => ({
+                        id: n.id,
+                        read: !!n.read,
+                        type: n.type,
+                        message: n.message,
+                        created_at: n.created_at,
+                        data: n.data ?? {},
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to load notifications', error);
+            }
+        },
+
         add(notification) {
             this.items.unshift({
                 id: Date.now() + Math.random(),
@@ -20,12 +51,189 @@ document.addEventListener('alpine:init', () => {
             return this.items.filter((n) => !n.read).length;
         },
 
-        markAllAsRead() {
+        async markAllAsRead() {
             this.items.forEach((n) => {
                 n.read = true;
             });
+
+            try {
+                await fetch('/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+            } catch (error) {
+                console.error('Failed to mark notifications as read', error);
+            }
         },
     });
+
+    // Load existing notifications from the backend on init
+    Alpine.store('notifications').loadInitial();
+
+    // Friend request actions on user profile (no page reload)
+    Alpine.data('friendRequestProfile', (config) => ({
+        state: config.state,
+        loading: false,
+        receiverId: config.receiverId,
+        storeUrl: config.storeUrl,
+        acceptUrl: config.acceptUrl,
+        rejectUrl: config.rejectUrl,
+        destroyUrl: config.destroyUrl,
+        csrf: config.csrf,
+
+        headers() {
+            return {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': this.csrf,
+            };
+        },
+
+        async sendRequest() {
+            if (this.loading || this.state !== 'add_friend') return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.storeUrl, {
+                    method: 'POST',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ receiver_id: this.receiverId }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    this.state = 'pending_from_me';
+                } else {
+                    alert(data.message || 'Request failed');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Request failed');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async cancelRequest() {
+            if (this.loading || !this.destroyUrl) return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.destroyUrl, {
+                    method: 'DELETE',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                });
+                if (res.ok || res.status === 204) {
+                    this.state = 'add_friend';
+                    this.destroyUrl = null;
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async acceptRequest() {
+            if (this.loading || !this.acceptUrl) return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.acceptUrl, {
+                    method: 'POST',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                });
+                if (res.ok) {
+                    this.state = 'friends';
+                    this.acceptUrl = null;
+                    this.rejectUrl = null;
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async rejectRequest() {
+            if (this.loading || !this.rejectUrl) return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.rejectUrl, {
+                    method: 'POST',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                });
+                if (res.ok) {
+                    this.state = 'add_friend';
+                    this.acceptUrl = null;
+                    this.rejectUrl = null;
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+    }));
+
+    // Accept/Reject friend request on friends index page (no page reload)
+    Alpine.data('friendRequestAcceptReject', (config) => ({
+        loading: false,
+        acceptUrl: config.acceptUrl,
+        rejectUrl: config.rejectUrl,
+        csrf: config.csrf,
+
+        headers() {
+            return {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': this.csrf,
+            };
+        },
+
+        async accept() {
+            if (this.loading) return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.acceptUrl, {
+                    method: 'POST',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                });
+                if (res.ok) {
+                    this.$el.remove();
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async reject() {
+            if (this.loading) return;
+            this.loading = true;
+            try {
+                const res = await fetch(this.rejectUrl, {
+                    method: 'POST',
+                    headers: this.headers(),
+                    credentials: 'same-origin',
+                });
+                if (res.ok) {
+                    this.$el.remove();
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+    }));
 });
 
 Alpine.start();
