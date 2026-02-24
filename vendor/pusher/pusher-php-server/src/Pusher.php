@@ -19,7 +19,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
     /**
      * @var string Version
      */
-    public static $VERSION = '7.2.6';
+    public static $VERSION = '7.2.0';
 
     /**
      * @var null|PusherCrypto
@@ -60,9 +60,15 @@ class Pusher implements LoggerAwareInterface, PusherInterface
      *
      * @throws PusherException Throws exception if any required dependencies are missing
      */
-    public function __construct(string $auth_key, string $secret, string $app_id, array $options = [], ?ClientInterface $client = null)
+    public function __construct(string $auth_key, string $secret, string $app_id, array $options = [], ClientInterface $client = null)
     {
         $this->check_compatibility();
+
+        if (!is_null($client)) {
+            $this->client = $client;
+        } else {
+            $this->client = new \GuzzleHttp\Client();
+        }
 
         $useTLS = true;
         if (isset($options['useTLS'])) {
@@ -112,13 +118,6 @@ class Pusher implements LoggerAwareInterface, PusherInterface
                 $options['encryption_master_key_base64']
             );
             $this->crypto = new PusherCrypto($parsedKey);
-        }
-
-
-        if (!is_null($client)) {
-            $this->client = $client;
-        } else {
-            $this->client = new \GuzzleHttp\Client(['timeout'  => $this->settings['timeout'],]);
         }
     }
 
@@ -287,7 +286,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
         string $request_path,
         array $query_params = [],
         string $auth_version = '1.0',
-        ?string $auth_timestamp = null
+        string $auth_timestamp = null
     ): array {
         $params = [];
         $params['auth_key'] = $auth_key;
@@ -476,8 +475,8 @@ class Pusher implements LoggerAwareInterface, PusherInterface
      */
     public function sendToUser(string $user_id, string $event, $data, bool $already_encoded = false): object
     {
-        $this->validate_user_id($user_id);
-        return $this->trigger(["#server-to-user-$user_id"], $event, $data, [], $already_encoded);
+      $this->validate_user_id($user_id);
+      return $this->trigger(["#server-to-user-$user_id"], $event, $data, [], $already_encoded);
     }
 
     /**
@@ -493,8 +492,8 @@ class Pusher implements LoggerAwareInterface, PusherInterface
      */
     public function sendToUserAsync(string $user_id, string $event, $data, bool $already_encoded = false): PromiseInterface
     {
-        $this->validate_user_id($user_id);
-        return $this->triggerAsync(["#server-to-user-$user_id"], $event, $data, [], $already_encoded);
+      $this->validate_user_id($user_id);
+      return $this->triggerAsync(["#server-to-user-$user_id"], $event, $data, [], $already_encoded);
     }
 
 
@@ -725,8 +724,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
             'query' => $signature,
             'http_errors' => false,
             'headers' => $headers,
-            'base_uri' => $this->channels_url_prefix(),
-            'timeout' => $this->settings['timeout']
+            'base_uri' => $this->channels_url_prefix()
         ]);
 
         $status = $response->getStatusCode();
@@ -778,8 +776,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
                 'body' => $body,
                 'http_errors' => false,
                 'headers' => $headers,
-                'base_uri' => $this->channels_url_prefix(),
-                'timeout' => $this->settings['timeout']
+                'base_uri' => $this->channels_url_prefix()
             ]);
         } catch (ConnectException $e) {
             throw new ApiErrorException($e->getMessage());
@@ -829,8 +826,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
             'body' => $body,
             'http_errors' => false,
             'headers' => $headers,
-            'base_uri' => $this->channels_url_prefix(),
-            'timeout' => $this->settings['timeout'],
+            'base_uri' => $this->channels_url_prefix()
         ])->then(function ($response) {
             $status = $response->getStatusCode();
 
@@ -866,10 +862,9 @@ class Pusher implements LoggerAwareInterface, PusherInterface
         $this->validate_user_data($user_data);
         $serialized_user_data = json_encode($user_data, JSON_THROW_ON_ERROR);
         $signature = hash_hmac('sha256', "$socket_id::user::$serialized_user_data", $this->settings['secret'], false);
-        $auth = $this->settings['auth_key'] . ':' . $signature;
 
         return json_encode(
-            ['auth' => $auth, 'user_data' => $serialized_user_data],
+            ['auth' => $signature, 'user_data' => $serialized_user_data],
             JSON_THROW_ON_ERROR
         );
     }
@@ -884,7 +879,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
      * @return string Json encoded authentication string.
      * @throws PusherException Throws exception if $channel is invalid or above or $socket_id is invalid
      */
-    public function authorizeChannel(string $channel, string $socket_id, ?string $custom_data = null): string
+    public function authorizeChannel(string $channel, string $socket_id, string $custom_data = null): string
     {
         $this->validate_channel($channel);
         $this->validate_socket_id($socket_id);
@@ -918,7 +913,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
         return $response;
     }
 
-    /**
+     /**
      * Convenience function for presence channel authorization.
      *
      * Equivalent to authorizeChannel($channel, $socket_id, json_encode(['user_id' => $user_id, 'user_info' => $user_info], JSON_THROW_ON_ERROR))
@@ -949,7 +944,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
     /**
      * @deprecated in favour of authorizeChannel
      */
-    public function socketAuth(string $channel, string $socket_id, ?string $custom_data = null): string
+    public function socketAuth(string $channel, string $socket_id, string $custom_data = null): string
     {
         return $this->authorizeChannel($channel, $socket_id, $custom_data);
     }
@@ -957,7 +952,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
     /**
      * @deprecated in favour of authorizeChannel
      */
-    public function socket_auth(string $channel, string $socket_id, ?string $custom_data = null): string
+    public function socket_auth(string $channel, string $socket_id, string $custom_data = null): string
     {
         return $this->authorizeChannel($channel, $socket_id, $custom_data);
     }
@@ -1065,7 +1060,7 @@ class Pusher implements LoggerAwareInterface, PusherInterface
      */
     private function make_event(array $channels, string $event, $data, array $params = [], ?string $info = null, bool $already_encoded = false): array
     {
-        $has_encrypted_channel = false;
+      $has_encrypted_channel = false;
         foreach ($channels as $chan) {
             if (PusherCrypto::is_encrypted_channel($chan)) {
                 $has_encrypted_channel = true;
@@ -1106,12 +1101,12 @@ class Pusher implements LoggerAwareInterface, PusherInterface
         $post_params['data'] = $data_encoded;
         $channel_values = array_values($channels);
         if (count($channel_values) == 1) {
-            $post_params['channel'] = $channel_values[0];
+          $post_params['channel'] = $channel_values[0];
         } else {
-            $post_params['channels'] = $channel_values;
+          $post_params['channels'] = $channel_values;
         }
         if (!is_null($info)) {
-            $post_params['info'] = $info;
+          $post_params['info'] = $info;
         }
 
         return array_merge($post_params, $params);
@@ -1170,10 +1165,9 @@ class Pusher implements LoggerAwareInterface, PusherInterface
             $this->validate_channel($event['channel']);
             if (isset($event['socket_id'])) {
                 $this->validate_socket_id($event['socket_id']);
-                $batch[$key] = $this->make_event([$event['channel']], $event['name'], $event['data'], ['socket_id' => $event['socket_id']], $event['info'] ?? null, $already_encoded);
-            } else {
-                $batch[$key] = $this->make_event([$event['channel']], $event['name'], $event['data'], [], $event['info'] ?? null, $already_encoded);
             }
+
+            $batch[$key] = $this->make_event([$event['channel']], $event['name'], $event['data'], [], $event['info'] ?? null, $already_encoded);
         }
 
         try {

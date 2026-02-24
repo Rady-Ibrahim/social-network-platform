@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if (class_exists('ParagonIE_Sodium_Core_Salsa20', false)) {
     return;
@@ -23,12 +22,8 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
      * @return string
      * @throws TypeError
      */
-    public static function core_salsa20(
-        string $in,
-        #[SensitiveParameter]
-        string $k,
-        ?string $c = null
-    ): string {
+    public static function core_salsa20($in, $k, $c = null)
+    {
         if (self::strlen($k) < 32) {
             throw new RangeException('Key must be 32 bytes long');
         }
@@ -143,20 +138,16 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function salsa20(
-        int $len,
-        string $nonce,
-        #[SensitiveParameter]
-        string $key
-    ): string {
+    public static function salsa20($len, $nonce, $key)
+    {
         if (self::strlen($key) !== 32) {
             throw new RangeException('Key must be 32 bytes long');
         }
-        $kcopy = $key;
+        $kcopy = '' . $key;
         $in = self::substr($nonce, 0, 8) . str_repeat("\0", 8);
         $c = '';
         while ($len >= 64) {
-            $c .= self::core_salsa20($in, $kcopy);
+            $c .= self::core_salsa20($in, $kcopy, null);
             $u = 1;
             // Internal counter.
             for ($i = 8; $i < 16; ++$i) {
@@ -168,14 +159,14 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
         }
         if ($len > 0) {
             $c .= self::substr(
-                self::core_salsa20($in, $kcopy),
+                self::core_salsa20($in, $kcopy, null),
                 0,
                 $len
             );
         }
         try {
             ParagonIE_Sodium_Compat::memzero($kcopy);
-        } catch (SodiumException) {
+        } catch (SodiumException $ex) {
             $kcopy = null;
         }
         return $c;
@@ -192,14 +183,8 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function salsa20_xor_ic(
-        #[SensitiveParameter]
-        string $m,
-        string $n,
-        int $ic,
-        #[SensitiveParameter]
-        string $k
-    ): string {
+    public static function salsa20_xor_ic($m, $n, $ic, $k)
+    {
         $mlen = self::strlen($m);
         if ($mlen < 1) {
             return '';
@@ -211,7 +196,7 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
 
         $c = '';
         while ($mlen >= 64) {
-            $block = self::core_salsa20($in, $kcopy);
+            $block = self::core_salsa20($in, $kcopy, null);
             $c .= self::xorStrings(
                 self::substr($m, 0, 64),
                 self::substr($block, 0, 64)
@@ -228,7 +213,7 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
         }
 
         if ($mlen) {
-            $block = self::core_salsa20($in, $kcopy);
+            $block = self::core_salsa20($in, $kcopy, null);
             $c .= self::xorStrings(
                 self::substr($m, 0, $mlen),
                 self::substr($block, 0, $mlen)
@@ -237,7 +222,7 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
         try {
             ParagonIE_Sodium_Compat::memzero($block);
             ParagonIE_Sodium_Compat::memzero($kcopy);
-        } catch (SodiumException) {
+        } catch (SodiumException $ex) {
             $block = null;
             $kcopy = null;
         }
@@ -255,13 +240,8 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function salsa20_xor(
-        #[SensitiveParameter]
-        string $message,
-        string $nonce,
-        #[SensitiveParameter]
-        string $key
-    ): string {
+    public static function salsa20_xor($message, $nonce, $key)
+    {
         return self::xorStrings(
             $message,
             self::salsa20(
@@ -279,11 +259,11 @@ abstract class ParagonIE_Sodium_Core_Salsa20 extends ParagonIE_Sodium_Core_Util
      * @param int $c
      * @return int
      */
-    public static function rotate(int $u, int $c): int
+    public static function rotate($u, $c)
     {
         $u &= 0xffffffff;
         $c %= 32;
-        return (0xffffffff & (
+        return (int) (0xffffffff & (
                 ($u << $c)
                     |
                 ($u >> (32 - $c))

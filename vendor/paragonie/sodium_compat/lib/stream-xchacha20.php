@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if (!is_callable('sodium_crypto_stream_xchacha20')) {
     /**
@@ -12,11 +11,11 @@ if (!is_callable('sodium_crypto_stream_xchacha20')) {
      * @throws TypeError
      */
     function sodium_crypto_stream_xchacha20(
-        int $len,
-        string $nonce,
+        $len,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_stream_xchacha20($len, $nonce, $key, true);
     }
 }
@@ -26,7 +25,7 @@ if (!is_callable('sodium_crypto_stream_xchacha20_keygen')) {
      * @return string
      * @throws Exception
      */
-    function sodium_crypto_stream_xchacha20_keygen(): string
+    function sodium_crypto_stream_xchacha20_keygen()
     {
         return ParagonIE_Sodium_Compat::crypto_stream_xchacha20_keygen();
     }
@@ -43,11 +42,11 @@ if (!is_callable('sodium_crypto_stream_xchacha20_xor')) {
      */
     function sodium_crypto_stream_xchacha20_xor(
         #[\SensitiveParameter]
-        string $message,
-        string $nonce,
+        $message,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_stream_xchacha20_xor($message, $nonce, $key, true);
     }
 }
@@ -64,12 +63,12 @@ if (!is_callable('sodium_crypto_stream_xchacha20_xor_ic')) {
      */
     function sodium_crypto_stream_xchacha20_xor_ic(
         #[\SensitiveParameter]
-        string $message,
-        string $nonce,
-        int $counter,
+        $message,
+        $nonce,
+        $counter,
         #[\SensitiveParameter]
-        string $key
-    ): string {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_stream_xchacha20_xor_ic($message, $nonce, $counter, $key, true);
     }
 }

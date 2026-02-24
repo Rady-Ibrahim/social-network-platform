@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if (class_exists('ParagonIE_Sodium_Core_Ed25519', false)) {
     return;
@@ -25,7 +24,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function keypair(): string
+    public static function keypair()
     {
         $seed = random_bytes(self::SEED_BYTES);
         $pk = '';
@@ -44,15 +43,13 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function seed_keypair(
-        string &$pk,
-        string &$sk,
-        #[SensitiveParameter]
-        string $seed
-    ): string {
+    public static function seed_keypair(&$pk, &$sk, $seed)
+    {
         if (self::strlen($seed) !== self::SEED_BYTES) {
-            throw new SodiumException('crypto_sign keypair seed must be CRYPTO_SIGN_SEEDBYTES bytes long');
+            throw new SodiumException('crypto_sign keypair seed must be 32 bytes long');
         }
+
+        /** @var string $pk */
         $pk = self::publickey_from_secretkey($seed);
         $sk = $seed . $pk;
         return $sk;
@@ -65,12 +62,10 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws TypeError
      */
-    public static function secretkey(
-        #[SensitiveParameter]
-        string $keypair
-    ): string {
+    public static function secretkey($keypair)
+    {
         if (self::strlen($keypair) !== self::KEYPAIR_BYTES) {
-            throw new RangeException('crypto_sign keypair must be 96 bytes long');
+            throw new SodiumException('crypto_sign keypair must be 96 bytes long');
         }
         return self::substr($keypair, 0, 64);
     }
@@ -82,12 +77,10 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws TypeError
      */
-    public static function publickey(
-        #[SensitiveParameter]
-        string $keypair
-    ): string {
+    public static function publickey($keypair)
+    {
         if (self::strlen($keypair) !== self::KEYPAIR_BYTES) {
-            throw new RangeException('crypto_sign keypair must be 96 bytes long');
+            throw new SodiumException('crypto_sign keypair must be 96 bytes long');
         }
         return self::substr($keypair, 64, 32);
     }
@@ -100,10 +93,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function publickey_from_secretkey(
-        #[SensitiveParameter]
-        string $sk
-    ): string {
+    public static function publickey_from_secretkey($sk)
+    {
         /** @var string $sk */
         $sk = hash('sha512', self::substr($sk, 0, 32), true);
         $sk[0] = self::intToChr(
@@ -116,35 +107,56 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
     }
 
     /**
+     * Returns TRUE if $A represents a point on the order of the Edwards25519 prime order subgroup.
+     * Returns FALSE if $A is on a different subgroup.
+     *
+     * @param ParagonIE_Sodium_Core_Curve25519_Ge_P3 $A
+     * @return bool
+     *
+     * @throws SodiumException
+     */
+    public static function is_on_main_subgroup(ParagonIE_Sodium_Core_Curve25519_Ge_P3 $A)
+    {
+        $p1 = self::ge_mul_l($A);
+        $t = self::fe_sub($p1->Y, $p1->Z);
+        return self::fe_isnonzero($p1->X) && self::fe_isnonzero($t);
+    }
+
+    /**
      * @param string $pk
      * @return string
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function pk_to_curve25519(
-        string $pk
-    ): string {
-        if (self::strlen($pk) !== 32) {
-            throw new SodiumException('Argument 1 must be CRYPTO_SIGN_PUBLICKEYBYTES bytes');
-        }
+    public static function pk_to_curve25519($pk)
+    {
         if (self::small_order($pk)) {
             throw new SodiumException('Public key is on a small order');
         }
         $A = self::ge_frombytes_negate_vartime(self::substr($pk, 0, 32));
-        $p1 = self::ge_mul_l($A);
-        if (!self::fe_isnonzero($p1->X)) {
-            throw new SodiumException('Unexpected zero result');
+        if (!self::is_on_main_subgroup($A)) {
+            throw new SodiumException('Public key is not on a member of the main subgroup');
         }
+
+        # fe_1(one_minus_y);
+        # fe_sub(one_minus_y, one_minus_y, A.Y);
+        # fe_invert(one_minus_y, one_minus_y);
         $one_minux_y = self::fe_invert(
             self::fe_sub(
                 self::fe_1(),
                 $A->Y
             )
         );
+
+        # fe_1(x);
+        # fe_add(x, x, A.Y);
+        # fe_mul(x, x, one_minus_y);
         $x = self::fe_mul(
             self::fe_add(self::fe_1(), $A->Y),
             $one_minux_y
         );
+
+        # fe_tobytes(curve25519_pk, x);
         return self::fe_tobytes($x);
     }
 
@@ -156,10 +168,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function sk_to_pk(
-        #[SensitiveParameter]
-        string $sk
-    ): string {
+    public static function sk_to_pk($sk)
+    {
         return self::ge_p3_tobytes(
             self::ge_scalarmult_base(
                 self::substr($sk, 0, 32)
@@ -176,11 +186,9 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function sign(
-        string $message,
-        #[SensitiveParameter]
-        string $sk
-    ): string {
+    public static function sign($message, $sk)
+    {
+        /** @var string $signature */
         $signature = self::sign_detached($message, $sk);
         return $signature . $message;
     }
@@ -194,10 +202,9 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function sign_open(
-        string $message,
-        string $pk
-    ): string {
+    public static function sign_open($message, $pk)
+    {
+        /** @var string $signature */
         $signature = self::substr($message, 0, 64);
 
         /** @var string $message */
@@ -218,44 +225,59 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function sign_detached(
-        string $message,
-        #[SensitiveParameter]
-        string $sk
-    ): string {
+    public static function sign_detached($message, $sk)
+    {
         if (self::strlen($sk) !== 64) {
-            throw new SodiumException('Argument 2 must be CRYPTO_SIGN_SECRETKEYBYTES long.');
+            throw new SodiumException('Argument 2 must be CRYPTO_SIGN_SECRETKEYBYTES long');
         }
+        # crypto_hash_sha512(az, sk, 32);
         $az =  hash('sha512', self::substr($sk, 0, 32), true);
 
+        # az[0] &= 248;
+        # az[31] &= 63;
+        # az[31] |= 64;
         $az[0] = self::intToChr(self::chrToInt($az[0]) & 248);
         $az[31] = self::intToChr((self::chrToInt($az[31]) & 63) | 64);
 
+        # crypto_hash_sha512_init(&hs);
+        # crypto_hash_sha512_update(&hs, az + 32, 32);
+        # crypto_hash_sha512_update(&hs, m, mlen);
+        # crypto_hash_sha512_final(&hs, nonce);
         $hs = hash_init('sha512');
         hash_update($hs, self::substr($az, 32, 32));
         hash_update($hs, $message);
         $nonceHash = hash_final($hs, true);
 
+        # memmove(sig + 32, sk + 32, 32);
         $pk = self::substr($sk, 32, 32);
 
+        # sc_reduce(nonce);
+        # ge_scalarmult_base(&R, nonce);
+        # ge_p3_tobytes(sig, &R);
         $nonce = self::sc_reduce($nonceHash) . self::substr($nonceHash, 32);
         $sig = self::ge_p3_tobytes(
             self::ge_scalarmult_base($nonce)
         );
 
+        # crypto_hash_sha512_init(&hs);
+        # crypto_hash_sha512_update(&hs, sig, 64);
+        # crypto_hash_sha512_update(&hs, m, mlen);
+        # crypto_hash_sha512_final(&hs, hram);
         $hs = hash_init('sha512');
         hash_update($hs, self::substr($sig, 0, 32));
         hash_update($hs, self::substr($pk, 0, 32));
         hash_update($hs, $message);
         $hramHash = hash_final($hs, true);
 
+        # sc_reduce(hram);
+        # sc_muladd(sig + 32, hram, az, nonce);
         $hram = self::sc_reduce($hramHash);
         $sigAfter = self::sc_muladd($hram, $az, $nonce);
         $sig = self::substr($sig, 0, 32) . self::substr($sigAfter, 0, 32);
 
         try {
             ParagonIE_Sodium_Compat::memzero($az);
-        } catch (SodiumException) {
+        } catch (SodiumException $ex) {
             $az = null;
         }
         return $sig;
@@ -271,11 +293,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function verify_detached(
-        string $sig,
-        string $message,
-        string $pk
-    ): bool {
+    public static function verify_detached($sig, $message, $pk)
+    {
         if (self::strlen($sig) !== 64) {
             throw new SodiumException('Argument 1 must be CRYPTO_SIGN_BYTES long');
         }
@@ -283,7 +302,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
             throw new SodiumException('Argument 3 must be CRYPTO_SIGN_PUBLICKEYBYTES long');
         }
         if ((self::chrToInt($sig[63]) & 240) && self::check_S_lt_L(self::substr($sig, 32, 32))) {
-            throw new SodiumException('S < L - Invalid signature');
+            throw new SodiumException('S >= L - Invalid signature');
         }
         if (self::small_order($sig)) {
             throw new SodiumException('Signature is on too small of an order');
@@ -299,14 +318,19 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
             throw new SodiumException('All zero public key');
         }
 
-        /* The original value of ParagonIE_Sodium_Compat::$fastMult */
+        /** @var bool The original value of ParagonIE_Sodium_Compat::$fastMult */
         $orig = ParagonIE_Sodium_Compat::$fastMult;
 
         // Set ParagonIE_Sodium_Compat::$fastMult to true to speed up verification.
         ParagonIE_Sodium_Compat::$fastMult = true;
 
+        /** @var ParagonIE_Sodium_Core_Curve25519_Ge_P3 $A */
         $A = self::ge_frombytes_negate_vartime($pk);
+        if (!self::is_on_main_subgroup($A)) {
+            throw new SodiumException('Public key is not on a member of the main subgroup');
+        }
 
+        /** @var string $hDigest */
         $hDigest = hash(
             'sha512',
             self::substr($sig, 0, 32) .
@@ -314,12 +338,18 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
                 $message,
             true
         );
+
+        /** @var string $h */
         $h = self::sc_reduce($hDigest) . self::substr($hDigest, 32);
+
+        /** @var ParagonIE_Sodium_Core_Curve25519_Ge_P2 $R */
         $R = self::ge_double_scalarmult_vartime(
             $h,
             $A,
             self::substr($sig, 32)
         );
+
+        /** @var string $rcheck */
         $rcheck = self::ge_tobytes($R);
 
         // Reset ParagonIE_Sodium_Compat::$fastMult to what it was before.
@@ -336,7 +366,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function check_S_lt_L(string $S): bool
+    public static function check_S_lt_L($S)
     {
         if (self::strlen($S) < 32) {
             throw new SodiumException('Signature must be 32 bytes');
@@ -362,6 +392,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
                 (($x ^ $L[$i]) - 1) >> 8
             );
         } while ($i !== 0);
+
         return $c === 0;
     }
 
@@ -371,7 +402,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function small_order(string $R): bool
+    public static function small_order($R)
     {
         /** @var array<int, array<int, int>> $blocklist */
         $blocklist = array(
@@ -460,11 +491,13 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
             )
         );
+        /** @var int $countBlocklist */
         $countBlocklist = count($blocklist);
+
         for ($i = 0; $i < $countBlocklist; ++$i) {
             $c = 0;
             for ($j = 0; $j < 32; ++$j) {
-                $c |= self::chrToInt($R[$j]) ^ $blocklist[$i][$j];
+                $c |= self::chrToInt($R[$j]) ^ (int) $blocklist[$i][$j];
             }
             if ($c === 0) {
                 return true;
@@ -478,10 +511,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws SodiumException
      */
-    public static function scalar_complement(
-        #[SensitiveParameter]
-        string $s
-    ): string {
+    public static function scalar_complement($s)
+    {
         $t_ = self::L . str_repeat("\x00", 32);
         sodium_increment($t_);
         $s_ = $s . str_repeat("\x00", 32);
@@ -493,7 +524,7 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws SodiumException
      */
-    public static function scalar_random(): string
+    public static function scalar_random()
     {
         do {
             $r = ParagonIE_Sodium_Compat::randombytes_buf(self::SCALAR_BYTES);
@@ -511,10 +542,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws SodiumException
      */
-    public static function scalar_negate(
-        #[SensitiveParameter]
-        string $s
-    ): string {
+    public static function scalar_negate($s)
+    {
         $t_ = self::L . str_repeat("\x00", 32) ;
         $s_ = $s . str_repeat("\x00", 32) ;
         ParagonIE_Sodium_Compat::sub($t_, $s_);
@@ -527,12 +556,8 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws SodiumException
      */
-    public static function scalar_add(
-        #[SensitiveParameter]
-        string $a,
-        #[SensitiveParameter]
-        string $b
-    ): string {
+    public static function scalar_add($a, $b)
+    {
         $a_ = $a . str_repeat("\x00", 32);
         $b_ = $b . str_repeat("\x00", 32);
         ParagonIE_Sodium_Compat::add($a_, $b_);
@@ -545,12 +570,9 @@ abstract class ParagonIE_Sodium_Core_Ed25519 extends ParagonIE_Sodium_Core_Curve
      * @return string
      * @throws SodiumException
      */
-    public static function scalar_sub(
-        #[SensitiveParameter]
-        string $x,
-        #[SensitiveParameter]
-        string $y
-    ): string {
-        return self::scalar_add($x, self::scalar_negate($y));
+    public static function scalar_sub($x, $y)
+    {
+        $yn = self::scalar_negate($y);
+        return self::scalar_add($x, $yn);
     }
 }

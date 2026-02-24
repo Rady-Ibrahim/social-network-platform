@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if (class_exists('ParagonIE_Sodium_Core_XChaCha20', false)) {
     return;
@@ -20,12 +19,8 @@ class ParagonIE_Sodium_Core_XChaCha20 extends ParagonIE_Sodium_Core_HChaCha20
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function stream(
-        int $len,
-        string $nonce,
-        #[SensitiveParameter]
-        string $key
-    ): string {
+    public static function stream($len, $nonce, $key)
+    {
         if (self::strlen($nonce) !== 24) {
             throw new SodiumException('Nonce must be 24 bytes long');
         }
@@ -51,12 +46,8 @@ class ParagonIE_Sodium_Core_XChaCha20 extends ParagonIE_Sodium_Core_HChaCha20
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function ietfStream(
-        int $len,
-        string $nonce,
-        #[SensitiveParameter]
-        string $key
-    ): string {
+    public static function ietfStream($len, $nonce, $key)
+    {
         if (self::strlen($nonce) !== 24) {
             throw new SodiumException('Nonce must be 24 bytes long');
         }
@@ -83,14 +74,8 @@ class ParagonIE_Sodium_Core_XChaCha20 extends ParagonIE_Sodium_Core_HChaCha20
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function streamXorIc(
-        #[SensitiveParameter]
-        string $message,
-        string $nonce,
-        #[SensitiveParameter]
-        string $key,
-        string $ic = ''
-    ): string {
+    public static function streamXorIc($message, $nonce, $key, $ic = '')
+    {
         if (self::strlen($nonce) !== 24) {
             throw new SodiumException('Nonce must be 24 bytes long');
         }
@@ -115,13 +100,8 @@ class ParagonIE_Sodium_Core_XChaCha20 extends ParagonIE_Sodium_Core_HChaCha20
      * @throws SodiumException
      * @throws TypeError
      */
-    public static function ietfStreamXorIc(
-        #[SensitiveParameter]
-        string $message,
-        string $nonce,
-        string $key,
-        string $ic = ''
-    ): string {
+    public static function ietfStreamXorIc($message, $nonce, $key, $ic = '')
+    {
         if (self::strlen($nonce) !== 24) {
             throw new SodiumException('Nonce must be 24 bytes long');
         }

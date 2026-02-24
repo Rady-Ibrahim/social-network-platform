@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 if (class_exists('ParagonIE_Sodium_Core_ChaCha20_Ctx', false)) {
     return;
@@ -7,16 +6,13 @@ if (class_exists('ParagonIE_Sodium_Core_ChaCha20_Ctx', false)) {
 
 /**
  * Class ParagonIE_Sodium_Core_ChaCha20_Ctx
- *
- * @template-implements ArrayAccess<int>
- * @psalm-suppress MissingTemplateParam
  */
 class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util implements ArrayAccess
 {
     /**
      * @var SplFixedArray internally, <int, int>
      */
-    protected SplFixedArray $container;
+    protected $container;
 
     /**
      * ParagonIE_Sodium_Core_ChaCha20_Ctx constructor.
@@ -27,17 +23,11 @@ class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util impl
      * @param string $iv      Initialization Vector (a.k.a. nonce).
      * @param string $counter The initial counter value.
      *                        Defaults to 8 0x00 bytes.
-     *
-     * @throws SodiumException
      * @throws InvalidArgumentException
      * @throws TypeError
      */
-    public function __construct(
-        #[SensitiveParameter]
-        string $key = '',
-        string $iv = '',
-        string $counter = ''
-    ) {
+    public function __construct($key = '', $iv = '', $counter = '')
+    {
         if (self::strlen($key) !== 32) {
             throw new InvalidArgumentException('ChaCha20 expects a 256-bit key.');
         }
@@ -63,7 +53,6 @@ class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util impl
         $counter = $this->initCounter($counter);
         $this->container[12] = self::load_4(self::substr($counter, 0, 4));
         $this->container[13] = self::load_4(self::substr($counter, 4, 4));
-
         $this->container[14] = self::load_4(self::substr($iv, 0, 4));
         $this->container[15] = self::load_4(self::substr($iv, 4, 4));
     }
@@ -74,10 +63,17 @@ class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util impl
      * @param int $offset
      * @param int $value
      * @return void
+     * @psalm-suppress MixedArrayOffset
      */
     #[ReturnTypeWillChange]
-    public function offsetSet($offset, $value): void
+    public function offsetSet($offset, $value)
     {
+        if (!is_int($offset)) {
+            throw new InvalidArgumentException('Expected an integer');
+        }
+        if (!is_int($value)) {
+            throw new InvalidArgumentException('Expected an integer');
+        }
         $this->container[$offset] = $value;
     }
 
@@ -98,19 +94,40 @@ class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util impl
      *
      * @param int $offset
      * @return void
+     * @psalm-suppress MixedArrayOffset
      */
     #[ReturnTypeWillChange]
-    public function offsetUnset($offset): void
+    public function offsetUnset($offset)
     {
         unset($this->container[$offset]);
     }
 
     /**
+     * @internal You should not use this directly from another application
+     *
+     * @param int $offset
+     * @return mixed|null
+     * @psalm-suppress MixedArrayOffset
+     */
+    #[ReturnTypeWillChange]
+    public function offsetGet($offset)
+    {
+        return isset($this->container[$offset])
+            ? $this->container[$offset]
+            : null;
+    }
+
+    /**
      * Initialize (pad) a counter value.
      * @throws SodiumException
+     *
+     * @param string $ctr
+     * @return string
      */
-    public function initCounter(#[SensitiveParameter] string $ctr): string
-    {
+    public function initCounter(
+        #[SensitiveParameter]
+        $ctr
+    ) {
         $len = self::strlen($ctr);
         if ($len === 0) {
             return str_repeat("\0", 8);
@@ -122,19 +139,5 @@ class ParagonIE_Sodium_Core_ChaCha20_Ctx extends ParagonIE_Sodium_Core_Util impl
             throw new SodiumException("counter cannot be more than 8 bytes");
         }
         return $ctr;
-    }
-
-    /**
-     * @internal You should not use this directly from another application
-     *
-     * @param int $offset
-     * @return mixed|null
-     */
-    #[ReturnTypeWillChange]
-    public function offsetGet($offset)
-    {
-        return isset($this->container[$offset])
-            ? $this->container[$offset]
-            : null;
     }
 }

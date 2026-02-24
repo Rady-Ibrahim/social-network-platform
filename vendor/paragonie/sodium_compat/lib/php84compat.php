@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once dirname(dirname(__FILE__)) . '/autoload.php';
 
@@ -32,16 +31,16 @@ if (!is_callable('sodium_crypto_aead_aegis128l_decrypt')) {
      * @param string $additional_data
      * @param string $nonce
      * @param string $key
-     * @return string|bool
+     * @return string
      * @throws SodiumException
      */
     function sodium_crypto_aead_aegis128l_decrypt(
-        string $ciphertext,
-        string $additional_data,
-        string $nonce,
+        $ciphertext,
+        $additional_data,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string|bool {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_aead_aegis128l_decrypt(
             $ciphertext,
             $additional_data,
@@ -63,12 +62,12 @@ if (!is_callable('sodium_crypto_aead_aegis128l_encrypt')) {
      */
     function sodium_crypto_aead_aegis128l_encrypt(
         #[\SensitiveParameter]
-        string $message,
-        string $additional_data,
-        string $nonce,
+        $message,
+        $additional_data,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_aead_aegis128l_encrypt(
             $message,
             $additional_data,
@@ -84,16 +83,16 @@ if (!is_callable('sodium_crypto_aead_aegis256_decrypt')) {
      * @param string $additional_data
      * @param string $nonce
      * @param string $key
-     * @return string|bool
+     * @return string
      * @throws SodiumException
      */
     function sodium_crypto_aead_aegis256_decrypt(
-        string $ciphertext,
-        string $additional_data,
-        string $nonce,
+        $ciphertext,
+        $additional_data,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string|bool {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_aead_aegis256_decrypt(
             $ciphertext,
             $additional_data,
@@ -115,12 +114,12 @@ if (!is_callable('sodium_crypto_aead_aegis256_encrypt')) {
      */
     function sodium_crypto_aead_aegis256_encrypt(
         #[\SensitiveParameter]
-        string $message,
-        string $additional_data,
-        string $nonce,
+        $message,
+        $additional_data,
+        $nonce,
         #[\SensitiveParameter]
-        string $key
-    ): string {
+        $key
+    ) {
         return ParagonIE_Sodium_Compat::crypto_aead_aegis256_encrypt(
             $message,
             $additional_data,
