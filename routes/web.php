@@ -60,4 +60,10 @@ Route::middleware('auth')->group(function () {
     })->name('test-broadcast');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
+
+Route::post('/post', function () {
+    return response()->json([
+        'message' => 'Post created'
+    ]);
+});

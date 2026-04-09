@@ -1,237 +1,178 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            <a href="{{ route('posts.index') }}" class="text-indigo-600 hover:underline">{{ __('Feed') }}</a>
-            <span class="text-gray-400 mx-2">/</span>
-            {{ __('Post') }}
-        </h2>
+        <div class="flex items-center justify-between">
+            <nav class="flex items-center text-sm font-bold tracking-tight">
+                <a href="{{ route('posts.index') }}" class="text-gray-400 hover:text-indigo-600 transition-colors">{{ __('الخلاصات') }}</a>
+                <svg class="w-5 h-5 text-gray-300 mx-2 rtl:rotate-180" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 11H3a1 1 0 110-2h7.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                <span class="text-indigo-600">{{ __('عرض المنشور') }}</span>
+            </nav>
+        </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            {{-- البوست نفسه --}}
-            <article class="p-4 sm:p-6 bg-white shadow sm:rounded-lg">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex items-center gap-3 shrink-0">
-                        @if ($post->user->avatarUrl())
-                            <a href="{{ route('users.show', $post->user) }}" class="block h-10 w-10 overflow-hidden rounded-full">
-                                <img src="{{ $post->user->avatarUrl() }}" alt="" class="h-full w-full object-cover">
-                            </a>
-                        @else
-                            <a href="{{ route('users.show', $post->user) }}" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-500">
-                                {{ strtoupper(substr($post->user->name, 0, 1)) }}
-                            </a>
-                        @endif
-                        <div>
-                            <a href="{{ route('users.show', $post->user) }}" class="font-medium text-gray-900 hover:underline">{{ $post->user->name }}</a>
-                            <p class="text-xs text-gray-500">{{ $post->created_at->diffForHumans() }}</p>
-                        </div>
-                    </div>
-
-                    @can('update', $post)
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('posts.edit', $post) }}" class="text-sm text-indigo-600 hover:underline">{{ __('Edit') }}</a>
-                            <form action="{{ route('posts.destroy', $post) }}" method="post" class="inline" onsubmit="return confirm('{{ __('Delete this post?') }}');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-sm text-red-600 hover:underline">{{ __('Delete') }}</button>
-                            </form>
-                        </div>
-                    @endcan
-                </div>
-
-                <div class="mt-3 text-gray-800 whitespace-pre-line">
-                    {{ $post->content }}
-                </div>
-
-                @if ($post->image_path)
-                    <div class="mt-3">
-                        <img src="{{ $post->imageUrl() }}" alt="" class="max-h-96 w-full rounded-lg object-cover">
-                    </div>
-                @endif
-
-                {{-- الإعجابات --}}
-                <div class="mt-4 border-t border-gray-100 pt-3">
-                    <h3 class="font-medium text-gray-900 text-sm mb-2">
-                        {{ __('Likes') }} ({{ $post->likes_count }})
-                    </h3>
-
-                    @if ($post->likes->isEmpty())
-                        <p class="text-sm text-gray-500">
-                            {{ __('No one has liked this post yet.') }}
-                        </p>
-                    @else
-                        @php
-                            $likeUsers = $post->likes->pluck('user')->filter()->unique('id');
-                            $visibleUsers = $likeUsers->take(10);
-                            $remainingCount = $likeUsers->count() - $visibleUsers->count();
-                        @endphp
-
-                        <div class="flex flex-wrap gap-2 text-sm text-gray-700">
-                            @foreach ($visibleUsers as $user)
-                                <a href="{{ route('users.show', $user) }}"
-                                   class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-gray-100 hover:bg-gray-200">
-                                    @if ($user->avatarUrl())
-                                        <span class="inline-block h-6 w-6 rounded-full overflow-hidden">
-                                            <img src="{{ $user->avatarUrl() }}" alt="" class="h-full w-full object-cover">
-                                        </span>
-                                    @else
-                                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </span>
-                                    @endif
-                                    <span class="font-medium text-gray-800">{{ $user->name }}</span>
+    <div class="py-12 bg-[#f8fafc]">
+        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-8">
+            
+            {{-- Post Card --}}
+            <article class="bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] sm:rounded-[2.5rem] overflow-hidden border border-gray-100">
+                <div class="p-6 sm:p-8">
+                    {{-- Author Header --}}
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="relative">
+                                @if ($post->user->avatarUrl())
+                                    <img src="{{ $post->user->avatarUrl() }}" class="h-12 w-12 rounded-2xl object-cover ring-4 ring-indigo-50" />
+                                @else
+                                    <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shadow-lg">
+                                        {{ strtoupper(substr($post->user->name, 0, 1)) }}
+                                    </div>
+                                @endif
+                                <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+                            </div>
+                            <div>
+                                <a href="{{ route('users.show', $post->user) }}" class="block font-black text-gray-900 hover:text-indigo-600 transition-colors">
+                                    {{ $post->user->name }}
                                 </a>
-                            @endforeach
-
-                            @if ($remainingCount > 0)
-                                <span class="text-sm text-gray-500">
-                                    {{ __('and :count more', ['count' => $remainingCount]) }}
+                                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                                    {{ $post->created_at->diffForHumans() }}
                                 </span>
-                            @endif
+                            </div>
+                        </div>
+
+                        @can('update', $post)
+                            <div class="flex gap-2" x-data="{ open: false }">
+                                <a href="{{ route('posts.edit', $post) }}" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </a>
+                                <form action="{{ route('posts.destroy', $post) }}" method="post" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                    @csrf @method('DELETE')
+                                    <button class="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </form>
+                            </div>
+                        @endcan
+                    </div>
+
+                    {{-- Content --}}
+                    <div class="text-lg text-gray-800 leading-relaxed font-medium whitespace-pre-line mb-6">
+                        {{ $post->content }}
+                    </div>
+
+                    @if ($post->image_path)
+                        <div class="rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner mb-6">
+                            <img src="{{ $post->imageUrl() }}" class="w-full object-cover hover:scale-[1.02] transition-transform duration-700" />
                         </div>
                     @endif
+
+                    {{-- Like Stats --}}
+                    <div class="flex items-center justify-between py-4 border-t border-gray-50">
+                        <div class="flex items-center -space-x-3 space-x-reverse">
+                            @php $likeUsers = $post->likes->pluck('user')->unique('id'); @endphp
+                            @foreach ($likeUsers->take(5) as $user)
+                                <img src="{{ $user->avatarUrl() ?? 'https://ui-avatars.com/api/?name='.urlencode($user->name) }}" 
+                                     class="w-8 h-8 rounded-full border-2 border-white object-cover" title="{{ $user->name }}">
+                            @endforeach
+                            @if($likeUsers->count() > 5)
+                                <div class="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-gray-500">
+                                    +{{ $likeUsers->count() - 5 }}
+                                </div>
+                            @endif
+                            <span class="text-xs font-bold text-gray-400 mr-4">
+                                {{ $post->likes_count }} {{ __('تفاعلوا مع هذا') }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </article>
 
-            {{-- التعليقات --}}
-            <div class="p-4 sm:p-6 bg-white shadow sm:rounded-lg" id="comments">
-                <h3 class="font-medium text-gray-900 mb-3">
-                    {{ __('Comments') }} ({{ $comments->total() }})
-                </h3>
+            {{-- Comments Section --}}
+            <section class="space-y-6" id="comments">
+                <div class="flex items-center justify-between px-4">
+                    <h3 class="text-xl font-black text-gray-900">
+                        {{ __('التعليقات') }} <span class="text-indigo-600 text-sm ml-1">{{ $comments->total() }}</span>
+                    </h3>
+                </div>
 
-                @forelse ($comments as $comment)
-                    <div class="py-3 border-b border-gray-100 last:border-0" x-data="{ showReply: false }">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex gap-2 min-w-0">
-                                <a href="{{ route('users.show', $comment->user) }}" class="font-medium text-gray-900 hover:underline shrink-0">
-                                    {{ $comment->user->name }}
-                                </a>
-                                <div class="min-w-0">
-                                    <p class="text-xs text-gray-500">{{ $comment->created_at->diffForHumans() }}</p>
-                                    <p class="text-gray-700 mt-0.5">{{ $comment->body }}</p>
+                {{-- Comment Input --}}
+                <div class="bg-white p-4 rounded-[2rem] shadow-sm border border-gray-100">
+                    <form action="{{ route('comments.store', $post) }}" method="post" class="relative group">
+                        @csrf
+                        <textarea name="body" rows="1" 
+                            class="block w-full pl-20 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all resize-none font-medium" 
+                            placeholder="{{ __('أضف تعليقك هنا...') }}" required></textarea>
+                        <button type="submit" class="absolute left-2 top-2 bottom-2 px-6 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase hover:bg-indigo-700 transition-all">
+                            {{ __('نشر') }}
+                        </button>
+                    </form>
+                </div>
 
-                                    {{-- أزرار لايك ورد على التعليق --}}
-                                    <div class="mt-1 flex items-center gap-3 text-xs text-gray-500"
-                                         data-comment-actions
-                                         data-comment-id="{{ $comment->id }}"
-                                         data-liked="{{ ($comment->is_liked_by_me ?? false) ? '1' : '0' }}"
-                                         data-likes-count="{{ $comment->likes_count ?? $comment->likes()->count() }}"
-                                         data-like-text="{{ __('Like') }}"
-                                         data-liked-text="{{ __('Liked') }}"
-                                         data-unlike-text="{{ __('Unlike') }}">
-                                        <form action="{{ route('comments.like', $comment) }}" method="post" class="inline" data-comment-like-form>
-                                            @csrf
-                                            <button type="submit"
-                                                    class="js-comment-like-btn inline-flex items-center gap-1 {{ $comment->is_liked_by_me ?? false ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-600' }}">
-                                                <span class="js-comment-like-text">{{ $comment->is_liked_by_me ?? false ? __('Liked') : __('Like') }}</span>
-                                                <span class="text-[11px]">
-                                                    (<span class="js-comment-likes-count">{{ $comment->likes_count ?? $comment->likes()->count() }}</span>)
-                                                </span>
-                                            </button>
-                                        </form>
+                {{-- Comments List --}}
+                <div class="space-y-4">
+                    @forelse ($comments as $comment)
+                        <div class="bg-white p-6 rounded-[2rem] border border-gray-50 shadow-sm" x-data="{ showReply: false }">
+                            <div class="flex items-start gap-4">
+                                <img src="{{ $comment->user->avatarUrl() ?? 'https://ui-avatars.com/api/?name='.urlencode($comment->user->name) }}" class="h-10 w-10 rounded-xl object-cover shrink-0" />
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <a href="{{ route('users.show', $comment->user) }}" class="font-black text-sm text-gray-900 hover:text-indigo-600">{{ $comment->user->name }}</a>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase">{{ $comment->created_at->diffForHumans() }}</span>
+                                    </div>
+                                    <p class="text-gray-700 text-sm leading-relaxed mb-3">{{ $comment->body }}</p>
 
-                                        <form action="{{ route('comments.unlike', $comment) }}" method="post" class="inline" data-comment-unlike-form>
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                    class="js-comment-unlike-btn text-gray-500 hover:text-red-600 {{ ($comment->is_liked_by_me ?? false) ? '' : 'hidden' }}">
-                                                {{ __('Unlike') }}
-                                            </button>
-                                        </form>
-
-                                        <button type="button"
-                                                class="text-gray-500 hover:text-indigo-600"
-                                                @click="showReply = !showReply">
-                                            {{ __('Reply') }}
+                                    {{-- Actions --}}
+                                    <div class="flex items-center gap-4">
+                                        {{-- Like Logic (Simplified for UI) --}}
+                                        <button class="text-[11px] font-black uppercase tracking-tighter transition-colors {{ $comment->is_liked_by_me ? 'text-indigo-600' : 'text-gray-400 hover:text-indigo-600' }}">
+                                            {{ $comment->is_liked_by_me ? __('تم الإعجاب') : __('إعجاب') }} ({{ $comment->likes_count }})
                                         </button>
+                                        <button @click="showReply = !showReply" class="text-[11px] font-black uppercase tracking-tighter text-gray-400 hover:text-indigo-600 transition-colors">
+                                            {{ __('رد') }}
+                                        </button>
+                                        @can('delete', $comment)
+                                            <form action="{{ route('comments.destroy', $comment) }}" method="post">
+                                                @csrf @method('DELETE')
+                                                <button class="text-[11px] font-black uppercase tracking-tighter text-gray-300 hover:text-rose-500 transition-colors">{{ __('حذف') }}</button>
+                                            </form>
+                                        @endcan
                                     </div>
 
-                                    {{-- ردود على التعليق --}}
+                                    {{-- Replies --}}
                                     @if ($comment->replies->isNotEmpty())
-                                        <div class="mt-2 space-y-2">
+                                        <div class="mt-4 space-y-4 border-r-2 border-indigo-50 pr-4">
                                             @foreach ($comment->replies as $reply)
-                                                <div class="flex items-start gap-2">
-                                                    <span class="text-xs text-gray-400">↳</span>
-                                                    <div class="min-w-0 flex-1">
-                                                        <a href="{{ route('users.show', $reply->user) }}" class="font-medium text-gray-900 hover:underline text-sm">
-                                                            {{ $reply->user->name }}
-                                                        </a>
-                                                        <p class="text-[11px] text-gray-500">{{ $reply->created_at->diffForHumans() }}</p>
-                                                        <p class="text-gray-700 text-sm mt-0.5">{{ $reply->body }}</p>
-
-                                                        <div class="mt-1 flex items-center gap-3 text-[11px] text-gray-500"
-                                                             data-comment-actions
-                                                             data-comment-id="{{ $reply->id }}"
-                                                             data-liked="{{ ($reply->is_liked_by_me ?? false) ? '1' : '0' }}"
-                                                             data-likes-count="{{ $reply->likes_count ?? $reply->likes()->count() }}"
-                                                             data-like-text="{{ __('Like') }}"
-                                                             data-liked-text="{{ __('Liked') }}"
-                                                             data-unlike-text="{{ __('Unlike') }}">
-                                                            <form action="{{ route('comments.like', $reply) }}" method="post" class="inline" data-comment-like-form>
-                                                                @csrf
-                                                                <button type="submit"
-                                                                        class="js-comment-like-btn inline-flex items-center gap-1 {{ $reply->is_liked_by_me ?? false ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-600' }}">
-                                                                    <span class="js-comment-like-text">{{ $reply->is_liked_by_me ?? false ? __('Liked') : __('Like') }}</span>
-                                                                    <span>
-                                                                        (<span class="js-comment-likes-count">{{ $reply->likes_count ?? $reply->likes()->count() }}</span>)
-                                                                    </span>
-                                                                </button>
-                                                            </form>
-
-                                                            <form action="{{ route('comments.unlike', $reply) }}" method="post" class="inline" data-comment-unlike-form>
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit"
-                                                                        class="js-comment-unlike-btn text-gray-500 hover:text-red-600 {{ ($reply->is_liked_by_me ?? false) ? '' : 'hidden' }}">
-                                                                    {{ __('Unlike') }}
-                                                                </button>
-                                                            </form>
+                                                <div class="flex items-start gap-3">
+                                                    <img src="{{ $reply->user->avatarUrl() ?? 'https://ui-avatars.com/api/?name='.urlencode($reply->user->name) }}" class="h-8 w-8 rounded-lg object-cover shadow-sm" />
+                                                    <div class="flex-1 bg-gray-50/50 p-3 rounded-2xl">
+                                                        <div class="flex items-center justify-between mb-1">
+                                                            <span class="font-black text-xs text-gray-900">{{ $reply->user->name }}</span>
+                                                            <span class="text-[9px] font-bold text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
                                                         </div>
+                                                        <p class="text-xs text-gray-600 leading-normal">{{ $reply->body }}</p>
                                                     </div>
                                                 </div>
                                             @endforeach
                                         </div>
                                     @endif
 
-                                    {{-- فورم الرد على التعليق --}}
-                                    <div class="mt-2" x-show="showReply" x-cloak>
-                                        <form action="{{ route('comments.store', $post) }}" method="post" class="space-y-2">
+                                    {{-- Reply Input --}}
+                                    <div class="mt-4" x-show="showReply" x-cloak x-transition>
+                                        <form action="{{ route('comments.store', $post) }}" method="post" class="flex gap-2">
                                             @csrf
                                             <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-                                            <textarea name="body" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="{{ __('Write a reply...') }}" required></textarea>
-                                            <x-primary-button type="submit" class="!py-1 !text-xs">
-                                                {{ __('Reply') }}
-                                            </x-primary-button>
+                                            <input type="text" name="body" class="flex-1 bg-gray-50 border-none rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-100" placeholder="اكتب ردك هنا..." required>
+                                            <button class="px-4 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-black transition-all">رد</button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                            @can('delete', $comment)
-                                <form action="{{ route('comments.destroy', $comment) }}" method="post" class="inline"
-                                      onsubmit="return confirm('{{ __('Delete this comment?') }}');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs text-red-600 hover:underline">
-                                        {{ __('Delete') }}
-                                    </button>
-                                </form>
-                            @endcan
                         </div>
-                    </div>
-                @empty
-                    <p class="text-sm text-gray-500">{{ __('No comments yet.') }}</p>
-                @endforelse
-
-                {{-- فورم إضافة تعليق جديد --}}
-                <form action="{{ route('comments.store', $post) }}" method="post" class="mt-4 space-y-2">
-                    @csrf
-                    <textarea name="body" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="{{ __('Write a comment...') }}" required></textarea>
-                    <x-primary-button type="submit" class="!py-1 !text-sm">
-                        {{ __('Comment') }}
-                    </x-primary-button>
-                </form>
-            </div>
+                    @empty
+                        <div class="text-center py-12 bg-white rounded-[2rem] border border-dashed border-gray-200">
+                            <p class="text-gray-400 font-medium italic">{{ __('كن أول من يعلق على هذا المنشور!') }}</p>
+                        </div>
+                    @endforelse
+                </div>
+            </section>
         </div>
     </div>
 </x-app-layout>
